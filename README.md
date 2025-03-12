@@ -1,4 +1,4 @@
-# ERAEC
+# Environmental Risk Assessment of Emerging Contaminants (ERAEC)
 Basic machine learning workflow and configuration files for chemical-biological data integration and pattern discovery purposes
 This project explores how machine learning (ML) can identify and prioritize emerging contaminants (ECs) that disrupt microbial functions in various environments. It focuses on pattern discovery rather than predictive modeling, demonstrating how ML-based workflows highlight chemicals most likely driving community shifts or pathway disturbances.
 
