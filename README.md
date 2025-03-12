@@ -4,15 +4,19 @@ This project explores how machine learning (ML) can identify and prioritize emer
 
 Key Objectives
 Data Integration: Combine EC concentration data (often scaled by PNEC) with metagenomic or omics-derived endpoints (e.g., ARG abundance, metabolic pathways).
+
 Modeling Framework: Apply gradient boosting or random forest models with feature selection, cross-validation, and interpretability tools (SHAP, PDP).
-Case Studies:
-Landfill Leachate: Highly contaminated environment analyzed for carbon/nitrogen pathways.
-Yangtze River Sediment: Broader antibiotic and heavy metal contamination profiles linked to ARG dissemination.
+
 Methodology Highlights
 Preprocessing: Log-transformed concentration/PNEC ratios, normalized biological endpoints, and filtering of low-detection features.
 Cross-Validation: Typically 10-fold or leave-one-out to estimate alignment (R²) between EC features and microbial response.
 Interpretability: XGBoost’s built-in feature importance, SHAP summary plots, and partial dependence curves to clarify top chemical drivers and their concentration thresholds.
-Repository Contents
+
+Case Studies:
+Landfill Leachate: Highly contaminated environment analyzed for carbon/nitrogen pathways.
+Yangtze River Sediment: Broader antibiotic and heavy metal contamination profiles linked to ARG dissemination.
+
+# Repository Contents
 scripts/: Python scripts for data preprocessing, model training, and interpretability plots.
 data/: Example or template for the type of data used (EC concentrations, metagenomic relative abundance suitable for cross-sample comparison such as 16S rRNA normalized ARGs abundance).
 figures/: Selected outputs, including correlation networks, SHAP plots, and PDPs.
