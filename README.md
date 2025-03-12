@@ -18,13 +18,18 @@ Yangtze River Sediment: Broader antibiotic and heavy metal contamination profile
 
 # Repository Contents
 scripts/: Python scripts for data preprocessing, model training, and interpretability plots.
+
 data/: Example or template for the type of data used (EC concentrations, metagenomic relative abundance suitable for cross-sample comparison such as 16S rRNA normalized ARGs abundance).
+
 figures/: Selected outputs, including correlation networks, SHAP plots, and PDPs.
+
 docs/: Additional documentation or references for environment configuration.
 
 # OS & ENV
 Win11 & python 3.12.7
-Building on pandas
+
+Packages requirements:
+pandas
 numpy
 scikit-learn
 tensorflow
