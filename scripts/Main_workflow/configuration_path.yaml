@@ -1,0 +1,52 @@
+data:
+  chemical_path:"..."       # specify path e.g., F:/ERAEC_Project/datasets/chemical_pnec_RQ.xlsx
+  pathway_path:"..." 
+  env_indices_path:"..."  
+  output_dir:"..."  
+
+columns:
+  X_concentrations_cols: [2, 217]    # Example start/end indices for chemical concentrations
+  X_pnec_ratios_cols: [217, 369]     # remove tbbpa, trimethoprim
+  Y_pathways_cols: [2, -1]           # If -1, read to the end of the sheet
+
+preprocessing:
+  remove_outliers: true
+  pca_components: 8
+  epsilon: 0.000001
+  log_transform: true
+  min_max_scaling: true
+
+feature_selection:
+  top_n_chemicals: 20
+  top_n_args: 20                # You can reuse this or rename to top_n_paths if you prefer
+
+causal_analysis:
+  top_n_chemicals: 20
+  top_n_args: 20
+  random_state: 42
+  model_y:
+    n_estimators: 100
+    max_depth: 10
+    random_state: 42
+  model_t:
+    n_estimators: 100
+
+correlation_analysis:
+  importance_threshold: 0.02
+  correlation_threshold: 0.5
+  shap_threshold: 0.05
+  pval_alpha: 0.05
+
+shap:
+  max_display: 20 
+  interaction_index: Null  # Use a feature name or set Null for automatic selection
+
+visualization:
+  figsize: [20, 15]
+  layout: "kamada_kawai"  # Options: 'spring', 'circular', 'kamada_kawai'
+  spring_layout:
+    k: 0.3
+    iterations: 50
+  top_n_nodes: 50
+  save_plots: true
+  edge_weight_threshold: 0.1  # Minimum edge weight for inclusion in network
