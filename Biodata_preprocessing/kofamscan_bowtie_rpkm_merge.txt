@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Change to the directory where your annotation is
+cd /root/metagenome_annotation  
+
+# Define paths
+samples_path="/mnt/d/ERAEC_Project/datasets/2_assembly_binning"
+output_path="/mnt/d/ERAEC_Project/tests"
+ko_list_path="/root/cui/miniconda3/envs/metagenome_env/bin/ko_list"  # Path to your KO list file
+profiles_path="/root/cui/miniconda3/envs/metagenome_env/bin/profiles/profiles"  # Path to the profiles directory 
+
+mkdir -p ${output_path}
+
+# Activate the environment once before starting the loop
+conda activate metagenome_env
+
+# Iterate through all `.faa` files automatically
+for faa_file in ${samples_path}/*.faa
+do
+    sample=$(basename "$faa_file" ".faa")
+    echo "Processing sample: $sample"
+
+    # Create a directory for each sample
+    mkdir -p ${output_path}/${sample}_tmp
+
+    # KEGG functional annotation using KofamScan, specifying profiles and ko_list paths
+    kofamscan_output="${output_path}/${sample}_tmp/${sample}_kegg.tsv"
+    /root/cui/miniconda3/envs/metagenome_env/bin/exec_annotation \
+        -o ${kofamscan_output} \
+        --ko-list ${ko_list_path} \
+        --profile ${profiles_path} \
+        ${faa_file} --cpu 4
+
+    # Check if KofamScan was successful
+    if [ ! -f "${kofamscan_output}" ]; then
+        echo "KofamScan failed for sample: $sample"
+        continue
+    fi
+
+    # E-value filtering step
+    python /root/metagenome_annotation/scripts/e-value-filtering.py \
+        ${kofamscan_output} \
+        ${output_path}/${sample}_tmp/${sample}_kegg_filtered.tsv 1e-10
+
+    # Extract gene sequences for annotation (no decompression needed)
+    fna_file="${samples_path}/${sample}_gene.fna"
+    python /root/metagenome_annotation/scripts/extract_gene_sequences.py \
+        ${output_path}/${sample}_tmp/${sample}_kegg_filtered.tsv \
+        ${fna_file} \
+        ${output_path}/${sample}_tmp/${sample}_illumina_read_functiongene.fasta
+
+    # Compare to original data and calculate abundance using Bowtie2
+    bowtie2-build ${output_path}/${sample}_tmp/${sample}_illumina_read_functiongene.fasta \
+        ${output_path}/${sample}_tmp/${sample}_illumina_index
+
+    bowtie2 -x ${output_path}/${sample}_tmp/${sample}_illumina_index \
+        -1 ${samples_path}/${sample}_illumina_clean_1.fq \
+        -2 ${samples_path}/${sample}_illumina_clean_2.fq --no-unal | \
+        samtools view -bS - > ${output_path}/${sample}_tmp/${sample}_illumina_bowtie2_output.bam
+
+    # Sort BAM file and create index
+    samtools sort -m 4G -o ${output_path}/${sample}_tmp/${sample}_illumina_bowtie2_output.sorted.bam \
+        ${output_path}/${sample}_tmp/${sample}_illumina_bowtie2_output.bam
+
+    samtools index ${output_path}/${sample}_tmp/${sample}_illumina_bowtie2_output.sorted.bam
+
+    # Generate abundance file
+    samtools idxstats ${output_path}/${sample}_tmp/${sample}_illumina_bowtie2_output.sorted.bam > \
+        ${output_path}/${sample}_tmp/${sample}_abundance.txt
+
+    # Calculate RPKM values
+    python /root/metagenome_annotation/scripts/rpkm.py \
+        ${output_path}/${sample}_tmp/${sample}_illumina_bowtie2_output.bam \
+        ${output_path}/${sample}_tmp/${sample}_illumina_read_functiongene.fasta \
+        ${output_path}/${sample}_tmp/${sample}_illumina_rpkm.tsv
+
+    # Merge gene abundance with KO numbers
+    python /root/metagenome_annotation/scripts/ko_rpkm.py \
+        ${output_path}/${sample}_tmp/${sample}_illumina_rpkm.tsv \
+        ${output_path}/${sample}_tmp/${sample}_kegg_filtered.tsv \
+        ${output_path}/${sample}_annotation
+
+    # Group genes by KEGG level1, level2, level3 pathways
+# Group genes by KEGG level1, level2, level3 pathways
+python /root/metagenome_annotation/scripts/ko_level1_abundance.py /root/metagenome_annotation/scripts/kegg_pathway_uniq_1.csv ${output_path}/${sample}_annotation ${output_path}/${sample}_level1_abundance.tsv
+python /root/metagenome_annotation/scripts/ko_level2_abundance.py /root/metagenome_annotation/scripts/kegg_pathway_uniq_1.csv ${output_path}/${sample}_annotation ${output_path}/${sample}_level2_abundance.tsv
+python /root/metagenome_annotation/scripts/ko_level3_abundance.py /root/metagenome_annotation/scripts/kegg_pathway_uniq_1.csv ${output_path}/${sample}_annotation ${output_path}/${sample}_level3_abundance.tsv
+
+
+    # Optionally delete intermediate files to save space
+    rm -rf ${output_path}/${sample}_tmp
+
+    echo "Processing complete for sample: $sample"
+done
+
+# Deactivate the environment once after finishing
+conda deactivate
+

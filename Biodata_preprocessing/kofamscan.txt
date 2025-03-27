@@ -1,0 +1,47 @@
+#!/bin/bash
+
+cd /root/metagenome_annotation  # Change to the directory where your annotation is
+
+# Define paths
+samples_path="/mnt/d/ERAEC_Project/datasets/2_assembly_binning"
+output_path="/mnt/d/ERAEC_Project/tests"
+
+mkdir -p ${output_path}
+
+# Activate the environment once before starting the loop
+conda activate metagenome_env
+
+# Iterate through all `.faa.xz` files automatically
+for faa_file in ${samples_path}/*.faa.xz
+do
+    sample=$(basename "$faa_file" ".faa.xz")
+    echo "Processing sample: $sample"
+
+    # Create a directory for each sample
+    mkdir -p ${output_path}/${sample}_tmp
+
+    # Decompress the .faa.xz file
+    xz -d ${faa_file}
+    decompressed_faa="${samples_path}/${sample}.faa"
+
+    # KEGG functional annotation using KofamScan
+    kofamscan_output="${output_path}/${sample}_tmp/${sample}_kegg.tsv"
+    /root/cui/miniconda3/envs/metagenome_env/bin/exec_annotation \
+        -o ${kofamscan_output} ${decompressed_faa} --cpu 6
+
+    if [ ! -f "${kofamscan_output}" ]; then
+        echo "KofamScan failed for sample: $sample"
+        continue
+    fi
+
+    # Filter low-e-value entries 
+    conda activate pandas
+    python /root/metagenome_annotation/scripts/e-value-filtering.py \
+        ${kofamscan_output} \
+        ${output_path}/${sample}_tmp/${sample}_kegg_filtered.tsv 1e-10
+done
+
+# Deactivate the environment once after finishing (optional)
+conda deactivate
+
+
